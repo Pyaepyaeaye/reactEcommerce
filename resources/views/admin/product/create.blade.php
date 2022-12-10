@@ -123,7 +123,14 @@
                     @endforeach
                   </select>
                 </div>
-
+                <div class="form-group">
+                  <label for="">Choose Size</label>
+                  <select name="size_slug[]" id="size"  class="form-control" multiple>
+                    @foreach ($size as $s)
+                    <option value="{{ $s->id }}">{{ $s->name }}</option>                      
+                    @endforeach
+                  </select>
+                </div>
                 <div class="form-group">
                   <label for="">Choose Color</label>
                   <select name="color_slug[]" id="color"  class="form-control" multiple>
@@ -152,6 +159,7 @@
     $('#color').select2();
     $('#category').select2();
     $('#brand').select2();
+    $('#size').select2();
     $('#description').summernote(
       {
         placeholder: 'Description',

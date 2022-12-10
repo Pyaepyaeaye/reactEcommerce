@@ -38,7 +38,9 @@
       <table class="table table-bordered ">
         <thead class="bg-dark">
           <tr>       
-            <th>Name</th>            
+            <th>Name</th> 
+            <th>MM Name</th>  
+            <th>Image</th>         
             <th>Action</th>
           </tr>
         </thead>
@@ -46,6 +48,8 @@
           @foreach ($category as $c)
             <tr>           
               <td>{{ $c->name }}</td>
+              <td>{{ $c->mm_name }}</td>
+              <td><img src="{{ asset('images/category/'. $c->image) }}" alt="" width="100"></td>
               <td>
                 <div class="d-flex justify-content-around">
                   <a href="{{ route('category.edit',$c->slug) }}" class="btn btn-primary"><i class="fas fa-pen"></i>&nbsp; Edit</a>

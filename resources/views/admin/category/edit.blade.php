@@ -26,7 +26,7 @@
       <div class="container-fluid bg-white">        
           <div class="row">
             <div class="col-6 offset-3">
-            <form action="{{ route('category.update',$cat->id) }}" method="POST">              
+            <form action="{{ route('category.update',$cat->id) }}" method="POST" enctype="multipart/form-data">              
               @csrf
               @method('PUT')
               <div class="form-group">
@@ -34,6 +34,25 @@
                 <input type="text" name="name" id="" class="form-control" value="{{ $cat->name }}">
               </div>
               @error('name')
+              <div class="mb-2">
+                <span class="text-danger font-weight-bold"> {{ $message }}</span>  
+              </div>                           
+              @enderror
+              <div class="form-group">
+                <label for="">Myanmar Name</label>
+                <input type="text" name="mm_name" id="" class="form-control" value="{{ $cat->mm_name }}">
+              </div>
+              @error('mm_name')
+              <div class="mb-2">
+                <span class="text-danger font-weight-bold"> {{ $message }}</span>  
+              </div>                           
+              @enderror
+              <div class="form-group">
+                <label for="">Myanmar Name</label>
+                <input type="file" name="image" id="" class="form-control">
+                <img src="{{ asset('images/category/'. $cat->image) }}" alt="" width="100">
+              </div>
+              @error('image')
               <div class="mb-2">
                 <span class="text-danger font-weight-bold"> {{ $message }}</span>  
               </div>                           

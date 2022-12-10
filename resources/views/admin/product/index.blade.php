@@ -48,7 +48,7 @@
         <tbody>
           @foreach ($product as $p)
             <tr> 
-              <td><img src="{{ asset('/images/'.$p->image)}}" alt="" width="100"></td>
+              <td><img src="{{ asset('/images/product/'.$p->image)}}" alt="" width="100"></td>
               <td>{{ $p->name }}</td>
               <td>{{ $p->total_qty }}</td>
               <td>

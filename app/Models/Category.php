@@ -10,10 +10,14 @@ class Category extends Model
 {
     use HasFactory, SoftDeletes;
     
-    protected $fillable=['slug','name'];
+    protected $fillable=['slug','name','mm_name','image'];
+    protected $appends = ['image_url'];
     
     public function product(){
         return $this->hasMany(Product::class);
+    }
+    public function getImageUrlAttribute() {
+        return '/images/category/'.$this->image;
     }
     
     protected $dates = ['deleted_at'];

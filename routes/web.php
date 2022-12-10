@@ -1,14 +1,19 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Frontend\HomePageController;
 
 
-// Route::get('/', function () {
-//     return view('welcome');
-// });
+Route::get('/', [ HomePageController::class, 'home']);
+Route::get('/authuser', function(){
+    $user = User::find(1);
+    auth()->login($user);
+    return auth()->user();
+});
 /*Admin */
 
 Route::get('/admin/login',[ PageController::class, 'showLogin']);

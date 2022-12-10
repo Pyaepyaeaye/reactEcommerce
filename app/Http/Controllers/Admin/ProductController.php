@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use Validator;
+use App\Models\Size;
 use App\Models\Brand;
 use App\Models\Color;
 use App\Models\Product;
@@ -39,7 +40,8 @@ class ProductController extends Controller
         $supplier = Supplier::all();
         $color = Color::all();
         $brand = Brand::all();
-        return view('admin.product.create',compact('category','supplier','color','brand'));
+        $size = Size::all();
+        return view('admin.product.create',compact('category','supplier','color','brand','size'));
     }
 
     /**
@@ -50,7 +52,7 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        
+        //dd($request->all());
         $v= Validator::make($request->all(),[
             'name' => 'required',
             'image' => 'required|image|mimes:png,jpg,jpeg,webp|max:2048',
@@ -62,6 +64,7 @@ class ProductController extends Controller
             'category_slug'=> 'required|string',
             'color_slug.*'=> 'required|string',
             'brand_slug'=> 'required|string',
+            'size_slug.*'=> 'required|string',
         ],[
             'name.required' => 'Prouduct Name is required',
             'image.required' => 'Image is required',
@@ -74,16 +77,17 @@ class ProductController extends Controller
             'color_slug.required' => 'Color is required',
             'brand_slug.required' => 'Brand is required',
             'color_slug.required' => 'Color is required',
+            'size_slug.required' => 'Size is required',
         ]);
         if($v->fails()){
             return redirect()->back()->withErrors($v->errors());
         }
-       
+        
         //image store         
         //$img_name = time().'.'.$request->image->extension();
         $image= $request->file('image');     
         $img_name = time().'__'.$image->getClientOriginalName();
-        $image->move(public_path('images'), $img_name );      
+        $image->move(public_path('images/product/'), $img_name );      
         //product store
         $product= Product::create([
             'category_id' => $request->category_slug,
@@ -98,8 +102,7 @@ class ProductController extends Controller
             'total_qty' =>$request->total_qty,
             'like_count' => 0,
             'view_count' => 0,
-            'description' => $request->description,
-            'color_slug' => $request->color_slug,
+            'description' => $request->description,            
         ]);
 
         //add transaction
@@ -112,6 +115,8 @@ class ProductController extends Controller
         //add color
         $p= Product::find($product->id);        
         $p->color()->sync($request->color_slug);
+        $p->size()->sync($request->size_slug);
+
         return redirect('/admin/product')->with('success',"Product Create Successfully");    
 
     }
@@ -139,8 +144,9 @@ class ProductController extends Controller
         $supplier = Supplier::all();
         $color = Color::all();
         $brand = Brand::all();
+        $size = Size::all();
         $product = Product::where('slug', $id)->first();   
-        return view('admin.product.edit',compact('category','supplier','color','brand','product'));
+        return view('admin.product.edit',compact('category','supplier','color','brand','product','size'));
     
     }
 
@@ -153,15 +159,15 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $find_product= Product::find($id)->first();
+        $find_product= Product::where('id', $id)->first();
 
         //image store 
         $image= $request->file('image');
         $new_imag='';
         if($image){
-            File::delete(public_path('images/'.$find_product->image));
+            File::delete(public_path('images/product/'.$find_product->image));
             $new_imag = time().'__'.$image->getClientOriginalName();
-            $image->move(public_path('images'), $new_imag);   
+            $image->move(public_path('images/product/'), $new_imag);   
         }  
         else{            
             $new_imag= $find_product->image;
@@ -181,19 +187,14 @@ class ProductController extends Controller
             'total_qty' =>$request->total_qty,
             'like_count' => 0,
             'view_count' => 0,
-            'description' => $request->description,
-            'color_slug' => $request->color_slug,
+            'description' => $request->description,           
         ]);
 
-        //add transaction
-        // ProductAddTransaction::create([
-        //     'product_id' => $product->id,
-        //     'supplier_id' => $request->supplier_slug,
-        //     'total_qty' => $request->total_qty,
-        // ]);
         //add color               
         $find_product->color()->sync($request->color_slug);
-        return redirect(route('product.edit', $slug))->with('success', "Product Update Successfully");
+        $find_product->size()->sync($request->size_slug);
+        
+        return redirect('/admin/product')->with('success', "Product Update Successfully");
     }
 
     /**

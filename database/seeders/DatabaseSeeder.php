@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Size;
 use App\Models\User;
 use App\Models\Admin;
 use App\Models\Brand;
@@ -34,25 +35,35 @@ class DatabaseSeeder extends Seeder
             'password'=>Hash::make('123456'),
             
         ]);
-        $category=['Shoes','T-shirt', 'Hat','Mobile'];
+        $category=['Shoes','Women Bag','T-shirt', 'Hat','Mobile'];
         foreach($category as $c){
             Category::create([
                 'slug'=> Str::slug($c),
                 'name'=> $c,
+                'mm_name'=> "",
+                'image'=> ""
             ]);
         }
-        $brand=['Skechers','Samsung', 'Huawei','Apple'];
+        $brand=['Skechers','MBT','Samsung', 'Huawei','Apple'];
         foreach($brand as $b){
             Brand::create([
                 'slug'=> Str::slug($b),
-                'name'=> $b,
+                'name'=> $b              
             ]);
         }
-        $color=['red', 'green','blue','pink'];
+        $color=['red', 'green','blue', 'pink', 'white', 'black','orange'];
         foreach($color as $b){
             Color::create([
                 'slug'=> Str::slug($b),
                 'name'=> $b,
+            ]);
+        } 
+
+        $size=['XS', 'S','M', 'L', 'XL'];
+        foreach($size as $s){
+            Size::create([
+                'slug'=> Str::slug($s),
+                'name'=> $s,
             ]);
         } 
         $supplier = ['supplier One','supplier Two'];

@@ -26,13 +26,31 @@
       <div class="container-fluid bg-white">        
           <div class="row">
             <div class="col-6 offset-3">
-            <form action="{{ route('category.store') }}" method="POST">
+            <form action="{{ route('category.store') }}" method="POST" enctype="multipart/form-data">
               @csrf
               <div class="form-group">
                 <label for="">Name</label>
                 <input type="text" name="name" id="" class="form-control">
               </div>
               @error('name')
+              <div class="mb-2">
+                <span class="text-danger font-weight-bold"> {{ $message }}</span>  
+              </div>                           
+              @enderror
+              <div class="form-group">
+                <label for="">Myanmar Name</label>
+                <input type="text" name="mm_name" id="" class="form-control">
+              </div>
+              @error('mm_name')
+              <div class="mb-2">
+                <span class="text-danger font-weight-bold"> {{ $message }}</span>  
+              </div>                           
+              @enderror
+              <div class="form-group">
+                <label for="">Myanmar Name</label>
+                <input type="file" name="image" id="" class="form-control">
+              </div>
+              @error('image')
               <div class="mb-2">
                 <span class="text-danger font-weight-bold"> {{ $message }}</span>  
               </div>                           

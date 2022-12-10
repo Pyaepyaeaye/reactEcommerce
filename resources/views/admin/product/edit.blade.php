@@ -50,7 +50,7 @@
                 <div class="form-group">
                   <label for="">Image</label>
                   <input type="file" name="image" class="form-control">
-                  <img src="{{ asset('/images/'. $product->image) }}" width="160" alt="">
+                  <img src="{{ asset('/images/product/'. $product->image) }}" width="160" alt="">
                 </div>
                 @error('image')
                 <div class="mb-2">
@@ -136,7 +136,20 @@
                     @endforeach
                   </select>
                 </div>
-
+                <div class="form-group">
+                  <label for="">Choose Size</label>
+                  <select name="size_slug[]" id="size"  class="form-control" multiple>
+                    @foreach ($size as $s)
+                    <option value="{{ $s->id }}"
+                      @foreach ($product->size as $scol)
+                        @if ($scol->id ===  $s->id)
+                        selected                          
+                        @endif                        
+                      @endforeach
+                      >{{ $s->name }}</option>                      
+                    @endforeach
+                  </select>
+                </div>
                 <div class="form-group">
                   <label for="">Choose Color</label>
                   <select name="color_slug[]" id="color"  class="form-control" multiple>
@@ -171,6 +184,7 @@
     $('#color').select2();
     $('#category').select2();
     $('#brand').select2();
+    $('#size').select2();
     $('#description').summernote(
       {
         placeholder: 'Description',
