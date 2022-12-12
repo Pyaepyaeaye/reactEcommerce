@@ -21,7 +21,8 @@
     <!-- Libraries Stylesheet -->
     <link href="/web_assets/lib/animate/animate.min.css" rel="stylesheet">
     <link href="/web_assets/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
-
+    {{-- toastify --}}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <!-- Customized Bootstrap Stylesheet -->
     <link href="/web_assets/css/style.css" rel="stylesheet">
     @yield('css')
@@ -261,10 +262,36 @@
     <!-- Contact Javascript File -->
     <script src="/web_assets/mail/jqBootstrapValidation.min.js"></script>
     <script src="/web_assets/contact.js"></script>
+    {{-- toastify --}}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
+    @if (session()->has('error'))
+    <script>
+        Toastify({
+        text: "{{ session('error') }}",
+        className: "info",
+        position: 'center',
+        style: {
+            background: "#00b09b",
+        }
+        }).showToast();
+    </script>
+     @if (session()->has('success'))
+     <script>
+         Toastify({
+         text: "{{ session('success') }}",
+         className: "info",
+         position: 'center',
+         style: {
+             background: "blue",
+         }
+         }).showToast();
+     </script>
+        
+    @endif
     <!-- Template Javascript -->
     <script src="/web_assets/main.js"></script>
-    <script>
+    <script>        
         window.updateCart= cart=> {
             const cartCount= document.getElementById('cartCount');
             cartCount.innerText= cart;

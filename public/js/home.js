@@ -42,7 +42,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "warning": () => (/* binding */ warning)
 /* harmony export */ });
 /**
- * @remix-run/router v1.0.5
+ * @remix-run/router v1.0.3
  *
  * Copyright (c) Remix Software Inc.
  *
@@ -159,13 +159,8 @@ function createMemoryHistory(options) {
       return typeof to === "string" ? to : createPath(to);
     },
 
-    encodeLocation(to) {
-      let path = typeof to === "string" ? parsePath(to) : to;
-      return {
-        pathname: path.pathname || "",
-        search: path.search || "",
-        hash: path.hash || ""
-      };
+    encodeLocation(location) {
+      return location;
     },
 
     push(to, state) {
@@ -296,12 +291,10 @@ function createHashHistory(options) {
   }
 
   return getUrlBasedHistory(createHashLocation, createHashHref, validateHashLocation, options);
-}
-function invariant(value, message) {
-  if (value === false || value === null || typeof value === "undefined") {
-    throw new Error(message);
-  }
-}
+} //#endregion
+////////////////////////////////////////////////////////////////////////////////
+//#region UTILS
+////////////////////////////////////////////////////////////////////////////////
 
 function warning$1(cond, message) {
   if (!cond) {
@@ -401,13 +394,12 @@ function parsePath(path) {
 
   return parsedPath;
 }
-function createClientSideURL(location) {
+function createURL(location) {
   // window.location.origin is "null" (the literal string value) in Firefox
   // under certain conditions, notably when serving from a local HTML file
   // See https://bugzilla.mozilla.org/show_bug.cgi?id=878297
-  let base = typeof window !== "undefined" && typeof window.location !== "undefined" && window.location.origin !== "null" ? window.location.origin : window.location.href;
+  let base = typeof window !== "undefined" && typeof window.location !== "undefined" && window.location.origin !== "null" ? window.location.origin : "unknown://unknown";
   let href = typeof location === "string" ? location : createPath(location);
-  invariant(base, "No window.location.(origin|href) available to create URL for href: " + href);
   return new URL(href, base);
 }
 
@@ -500,14 +492,14 @@ function getUrlBasedHistory(getLocation, createHref, validateLocation, options) 
       return createHref(window, to);
     },
 
-    encodeLocation(to) {
+    encodeLocation(location) {
       // Encode a Location the same way window.location would
-      let url = createClientSideURL(typeof to === "string" ? to : createPath(to));
-      return {
+      let url = createURL(createPath(location));
+      return _extends({}, location, {
         pathname: url.pathname,
         search: url.search,
         hash: url.hash
-      };
+      });
     },
 
     push,
@@ -571,7 +563,7 @@ function convertRoutesToDataRoutes(routes, parentPath, allIds) {
 /**
  * Matches the given routes to a location and returns the match data.
  *
- * @see https://reactrouter.com/utils/match-routes
+ * @see https://reactrouter.com/docs/en/v6/utils/match-routes
  */
 
 function matchRoutes(routes, locationArg, basename) {
@@ -734,7 +726,7 @@ function matchRouteBranch(branch, pathname) {
 /**
  * Returns a path with params interpolated.
  *
- * @see https://reactrouter.com/utils/generate-path
+ * @see https://reactrouter.com/docs/en/v6/utils/generate-path
  */
 
 
@@ -763,7 +755,7 @@ function generatePath(path, params) {
  * Performs pattern matching on a URL pathname and returns information about
  * the match.
  *
- * @see https://reactrouter.com/utils/match-path
+ * @see https://reactrouter.com/docs/en/v6/utils/match-path
  */
 
 function matchPath(pattern, pathname) {
@@ -882,6 +874,11 @@ function stripBasename(pathname, basename) {
 
   return pathname.slice(startIndex) || "/";
 }
+function invariant(value, message) {
+  if (value === false || value === null || typeof value === "undefined") {
+    throw new Error(message);
+  }
+}
 /**
  * @private
  */
@@ -904,7 +901,7 @@ function warning(cond, message) {
 /**
  * Returns a resolved path object relative to the given pathname.
  *
- * @see https://reactrouter.com/utils/resolve-path
+ * @see https://reactrouter.com/docs/en/v6/utils/resolve-path
  */
 
 function resolvePath(to, fromPathname) {
@@ -1263,21 +1260,10 @@ const redirect = function redirect(url, init) {
  */
 
 class ErrorResponse {
-  constructor(status, statusText, data, internal) {
-    if (internal === void 0) {
-      internal = false;
-    }
-
+  constructor(status, statusText, data) {
     this.status = status;
     this.statusText = statusText || "";
-    this.internal = internal;
-
-    if (data instanceof Error) {
-      this.data = data.toString();
-      this.error = data;
-    } else {
-      this.data = data;
-    }
+    this.data = data;
   }
 
 }
@@ -1290,12 +1276,6 @@ function isRouteErrorResponse(e) {
   return e instanceof ErrorResponse;
 }
 
-const validActionMethodsArr = ["post", "put", "patch", "delete"];
-const validActionMethods = new Set(validActionMethodsArr);
-const validRequestMethodsArr = ["get", ...validActionMethodsArr];
-const validRequestMethods = new Set(validRequestMethodsArr);
-const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
-const redirectPreserveMethodStatusCodes = new Set([307, 308]);
 const IDLE_NAVIGATION = {
   state: "idle",
   location: undefined,
@@ -1346,13 +1326,11 @@ function createRouter(init) {
   if (initialMatches == null) {
     // If we do not match a user-provided-route, fall back to the root
     // to allow the error boundary to take over
-    let error = getInternalRouterError(404, {
-      pathname: init.history.location.pathname
-    });
     let {
       matches,
-      route
-    } = getShortCircuitMatches(dataRoutes);
+      route,
+      error
+    } = getNotFoundMatches(dataRoutes);
     initialMatches = matches;
     initialErrors = {
       [route.id]: error
@@ -1528,7 +1506,7 @@ function createRouter(init) {
     // the same encoding we'd get from a history.pushState/window.location read
     // without having to touch history
 
-    location = _extends({}, location, init.history.encodeLocation(location));
+    location = init.history.encodeLocation(location);
     let historyAction = (opts && opts.replace) === true || submission != null ? Action.Replace : Action.Push;
     let preventScrollReset = opts && "preventScrollReset" in opts ? opts.preventScrollReset === true : undefined;
     return await startNavigation(historyAction, location, {
@@ -1592,13 +1570,11 @@ function createRouter(init) {
     let matches = matchRoutes(dataRoutes, location, init.basename); // Short circuit with a 404 on the root error boundary if we match nothing
 
     if (!matches) {
-      let error = getInternalRouterError(404, {
-        pathname: location.pathname
-      });
       let {
         matches: notFoundMatches,
-        route
-      } = getShortCircuitMatches(dataRoutes); // Cancel all pending deferred on 404s since we don't keep any routes
+        route,
+        error
+      } = getNotFoundMatches(dataRoutes); // Cancel all pending deferred on 404s since we don't keep any routes
 
       cancelActiveDeferreds();
       completeNavigation(location, {
@@ -1621,7 +1597,7 @@ function createRouter(init) {
 
 
     pendingNavigationController = new AbortController();
-    let request = createClientSideRequest(location, pendingNavigationController.signal, opts && opts.submission);
+    let request = createRequest(location, pendingNavigationController.signal, opts && opts.submission);
     let pendingActionData;
     let pendingError;
 
@@ -1651,11 +1627,7 @@ function createRouter(init) {
         location
       }, opts.submission);
 
-      loadingNavigation = navigation; // Create a GET request for the loaders
-
-      request = new Request(request.url, {
-        signal: request.signal
-      });
+      loadingNavigation = navigation;
     } // Call loaders
 
 
@@ -1698,14 +1670,7 @@ function createRouter(init) {
     let actionMatch = getTargetMatch(matches, location);
 
     if (!actionMatch.route.action) {
-      result = {
-        type: ResultType.error,
-        error: getInternalRouterError(405, {
-          method: request.method,
-          pathname: location.pathname,
-          routeId: actionMatch.route.id
-        })
-      };
+      result = getMethodNotAllowedResult(location);
     } else {
       result = await callLoaderOrAction("action", request, actionMatch, matches, router.basename);
 
@@ -1717,7 +1682,12 @@ function createRouter(init) {
     }
 
     if (isRedirectResult(result)) {
-      await startRedirectNavigation(state, result, opts && opts.replace === true);
+      let redirectNavigation = _extends({
+        state: "loading",
+        location: createLocation(state.location, result.location)
+      }, submission);
+
+      await startRedirectNavigation(result, redirectNavigation, opts && opts.replace);
       return {
         shortCircuited: true
       };
@@ -1844,7 +1814,8 @@ function createRouter(init) {
     let redirect = findRedirect(results);
 
     if (redirect) {
-      await startRedirectNavigation(state, redirect, replace);
+      let redirectNavigation = getLoaderRedirect(state, redirect);
+      await startRedirectNavigation(redirect, redirectNavigation, replace);
       return {
         shortCircuited: true
       };
@@ -1890,9 +1861,7 @@ function createRouter(init) {
     let matches = matchRoutes(dataRoutes, href, init.basename);
 
     if (!matches) {
-      setFetcherError(key, routeId, getInternalRouterError(404, {
-        pathname: href
-      }));
+      setFetcherError(key, routeId, new ErrorResponse(404, "Not Found", null));
       return;
     }
 
@@ -1920,11 +1889,9 @@ function createRouter(init) {
     fetchLoadMatches.delete(key);
 
     if (!match.route.action) {
-      let error = getInternalRouterError(405, {
-        method: submission.formMethod,
-        pathname: path,
-        routeId: routeId
-      });
+      let {
+        error
+      } = getMethodNotAllowedResult(path);
       setFetcherError(key, routeId, error);
       return;
     } // Put this fetcher into it's submitting state
@@ -1944,7 +1911,7 @@ function createRouter(init) {
     }); // Call the action for the fetcher
 
     let abortController = new AbortController();
-    let fetchRequest = createClientSideRequest(path, abortController.signal, submission);
+    let fetchRequest = createRequest(path, abortController.signal, submission);
     fetchControllers.set(key, abortController);
     let actionResult = await callLoaderOrAction("action", fetchRequest, match, requestMatches, router.basename);
 
@@ -1972,7 +1939,14 @@ function createRouter(init) {
       updateState({
         fetchers: new Map(state.fetchers)
       });
-      return startRedirectNavigation(state, actionResult);
+
+      let redirectNavigation = _extends({
+        state: "loading",
+        location: createLocation(state.location, actionResult.location)
+      }, submission);
+
+      await startRedirectNavigation(actionResult, redirectNavigation);
+      return;
     } // Process any non-redirect errors thrown
 
 
@@ -1988,7 +1962,7 @@ function createRouter(init) {
 
 
     let nextLocation = state.navigation.location || state.location;
-    let revalidationRequest = createClientSideRequest(nextLocation, abortController.signal);
+    let revalidationRequest = createRequest(nextLocation, abortController.signal);
     let matches = state.navigation.state !== "idle" ? matchRoutes(dataRoutes, state.navigation.location, init.basename) : state.matches;
     invariant(matches, "Didn't find any matches after fetcher action");
     let loadId = ++incrementingLoadId;
@@ -2046,7 +2020,9 @@ function createRouter(init) {
     let redirect = findRedirect(results);
 
     if (redirect) {
-      return startRedirectNavigation(state, redirect);
+      let redirectNavigation = getLoaderRedirect(state, redirect);
+      await startRedirectNavigation(redirect, redirectNavigation);
+      return;
     } // Process and commit output from loaders
 
 
@@ -2108,7 +2084,7 @@ function createRouter(init) {
     }); // Call the loader for this fetcher route match
 
     let abortController = new AbortController();
-    let fetchRequest = createClientSideRequest(path, abortController.signal);
+    let fetchRequest = createRequest(path, abortController.signal);
     fetchControllers.set(key, abortController);
     let result = await callLoaderOrAction("loader", fetchRequest, match, matches, router.basename); // Deferred isn't supported or fetcher loads, await everything and treat it
     // as a normal load.  resolveDeferredData will return undefined if this
@@ -2131,7 +2107,8 @@ function createRouter(init) {
 
 
     if (isRedirectResult(result)) {
-      await startRedirectNavigation(state, result);
+      let redirectNavigation = getLoaderRedirect(state, result);
+      await startRedirectNavigation(result, redirectNavigation);
       return;
     } // Process any non-redirect errors thrown
 
@@ -2187,66 +2164,19 @@ function createRouter(init) {
    */
 
 
-  async function startRedirectNavigation(state, redirect, replace) {
-    var _window;
-
+  async function startRedirectNavigation(redirect, navigation, replace) {
     if (redirect.revalidate) {
       isRevalidationRequired = true;
     }
 
-    let redirectLocation = createLocation(state.location, redirect.location);
-    invariant(redirectLocation, "Expected a location on the redirect navigation"); // Check if this an external redirect that goes to a new origin
-
-    if (typeof ((_window = window) == null ? void 0 : _window.location) !== "undefined") {
-      let newOrigin = createClientSideURL(redirect.location).origin;
-
-      if (window.location.origin !== newOrigin) {
-        if (replace) {
-          window.location.replace(redirect.location);
-        } else {
-          window.location.assign(redirect.location);
-        }
-
-        return;
-      }
-    } // There's no need to abort on redirects, since we don't detect the
+    invariant(navigation.location, "Expected a location on the redirect navigation"); // There's no need to abort on redirects, since we don't detect the
     // redirect until the action/loaders have settled
-
 
     pendingNavigationController = null;
     let redirectHistoryAction = replace === true ? Action.Replace : Action.Push;
-    let {
-      formMethod,
-      formAction,
-      formEncType,
-      formData
-    } = state.navigation; // If this was a 307/308 submission we want to preserve the HTTP method and
-    // re-submit the POST/PUT/PATCH/DELETE as a submission navigation to the
-    // redirected location
-
-    if (redirectPreserveMethodStatusCodes.has(redirect.status) && formMethod && isSubmissionMethod(formMethod) && formEncType && formData) {
-      await startNavigation(redirectHistoryAction, redirectLocation, {
-        submission: {
-          formMethod,
-          formAction: redirect.location,
-          formEncType,
-          formData
-        }
-      });
-    } else {
-      // Otherwise, we kick off a new loading navigation, preserving the
-      // submission info for the duration of this navigation
-      await startNavigation(redirectHistoryAction, redirectLocation, {
-        overrideNavigation: {
-          state: "loading",
-          location: redirectLocation,
-          formMethod: formMethod || undefined,
-          formAction: formAction || undefined,
-          formEncType: formEncType || undefined,
-          formData: formData || undefined
-        }
-      });
-    }
+    await startNavigation(redirectHistoryAction, navigation.location, {
+      overrideNavigation: navigation
+    });
   }
 
   async function callLoadersAndMaybeResolveData(currentMatches, matches, matchesToLoad, fetchersToLoad, request) {
@@ -2255,7 +2185,7 @@ function createRouter(init) {
     // accordingly
     let results = await Promise.all([...matchesToLoad.map(match => callLoaderOrAction("loader", request, match, matches, router.basename)), ...fetchersToLoad.map(_ref8 => {
       let [, href, match, fetchMatches] = _ref8;
-      return callLoaderOrAction("loader", createClientSideRequest(href, request.signal), match, fetchMatches, router.basename);
+      return callLoaderOrAction("loader", createRequest(href, request.signal), match, fetchMatches, router.basename);
     })]);
     let loaderResults = results.slice(0, matchesToLoad.length);
     let fetcherResults = results.slice(matchesToLoad.length);
@@ -2450,7 +2380,6 @@ function createRouter(init) {
     // Passthrough to history-aware createHref used by useHref so we get proper
     // hash-aware URLs in DOM paths
     createHref: to => init.history.createHref(to),
-    encodeLocation: to => init.history.encodeLocation(to),
     getFetcher,
     deleteFetcher,
     dispose,
@@ -2463,10 +2392,11 @@ function createRouter(init) {
 //#region createStaticHandler
 ////////////////////////////////////////////////////////////////////////////////
 
-function unstable_createStaticHandler(routes, opts) {
+const validActionMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const validRequestMethods = new Set(["GET", "HEAD", ...validActionMethods]);
+function unstable_createStaticHandler(routes) {
   invariant(routes.length > 0, "You must provide a non-empty routes array to unstable_createStaticHandler");
   let dataRoutes = convertRoutesToDataRoutes(routes);
-  let basename = (opts ? opts.basename : null) || "/";
   /**
    * The query() method is intended for document requests, in which we want to
    * call an optional action and potentially multiple loaders for all nested
@@ -2487,25 +2417,18 @@ function unstable_createStaticHandler(routes, opts) {
    * return it directly.
    */
 
-  async function query(request, _temp) {
-    let {
-      requestContext
-    } = _temp === void 0 ? {} : _temp;
+  async function query(request) {
     let url = new URL(request.url);
-    let method = request.method.toLowerCase();
     let location = createLocation("", createPath(url), null, "default");
-    let matches = matchRoutes(dataRoutes, location, basename); // SSR supports HEAD requests while SPA doesn't
+    let matches = matchRoutes(dataRoutes, location);
 
-    if (!isValidMethod(method) && method !== "head") {
-      let error = getInternalRouterError(405, {
-        method
-      });
+    if (!validRequestMethods.has(request.method)) {
       let {
         matches: methodNotAllowedMatches,
-        route
-      } = getShortCircuitMatches(dataRoutes);
+        route,
+        error
+      } = getMethodNotAllowedMatches(dataRoutes);
       return {
-        basename,
         location,
         matches: methodNotAllowedMatches,
         loaderData: {},
@@ -2518,15 +2441,12 @@ function unstable_createStaticHandler(routes, opts) {
         actionHeaders: {}
       };
     } else if (!matches) {
-      let error = getInternalRouterError(404, {
-        pathname: location.pathname
-      });
       let {
         matches: notFoundMatches,
-        route
-      } = getShortCircuitMatches(dataRoutes);
+        route,
+        error
+      } = getNotFoundMatches(dataRoutes);
       return {
-        basename,
         location,
         matches: notFoundMatches,
         loaderData: {},
@@ -2540,9 +2460,9 @@ function unstable_createStaticHandler(routes, opts) {
       };
     }
 
-    let result = await queryImpl(request, location, matches, requestContext);
+    let result = await queryImpl(request, location, matches);
 
-    if (isResponse(result)) {
+    if (result instanceof Response) {
       return result;
     } // When returning StaticHandlerContext, we patch back in the location here
     // since we need it for React Context.  But this helps keep our submit and
@@ -2550,8 +2470,7 @@ function unstable_createStaticHandler(routes, opts) {
 
 
     return _extends({
-      location,
-      basename
+      location
     }, result);
   }
   /**
@@ -2567,52 +2486,41 @@ function unstable_createStaticHandler(routes, opts) {
    * can do proper boundary identification in Remix where a thrown Response
    * must go to the Catch Boundary but a returned Response is happy-path.
    *
-   * One thing to note is that any Router-initiated Errors that make sense
-   * to associate with a status code will be thrown as an ErrorResponse
-   * instance which include the raw Error, such that the calling context can
-   * serialize the error as they see fit while including the proper response
-   * code.  Examples here are 404 and 405 errors that occur prior to reaching
-   * any user-defined loaders.
+   * One thing to note is that any Router-initiated thrown Response (such as a
+   * 404 or 405) will have a custom X-Remix-Router-Error: "yes" header on it
+   * in order to differentiate from responses thrown from user actions/loaders.
    */
 
 
-  async function queryRoute(request, _temp2) {
-    let {
-      routeId,
-      requestContext
-    } = _temp2 === void 0 ? {} : _temp2;
+  async function queryRoute(request, routeId) {
     let url = new URL(request.url);
-    let method = request.method.toLowerCase();
     let location = createLocation("", createPath(url), null, "default");
-    let matches = matchRoutes(dataRoutes, location, basename); // SSR supports HEAD requests while SPA doesn't
+    let matches = matchRoutes(dataRoutes, location);
 
-    if (!isValidMethod(method) && method !== "head") {
-      throw getInternalRouterError(405, {
-        method
+    if (!validRequestMethods.has(request.method)) {
+      throw createRouterErrorResponse(null, {
+        status: 405,
+        statusText: "Method Not Allowed"
       });
     } else if (!matches) {
-      throw getInternalRouterError(404, {
-        pathname: location.pathname
+      throw createRouterErrorResponse(null, {
+        status: 404,
+        statusText: "Not Found"
       });
     }
 
     let match = routeId ? matches.find(m => m.route.id === routeId) : getTargetMatch(matches, location);
 
-    if (routeId && !match) {
-      throw getInternalRouterError(403, {
-        pathname: location.pathname,
-        routeId
-      });
-    } else if (!match) {
-      // This should never hit I don't think?
-      throw getInternalRouterError(404, {
-        pathname: location.pathname
+    if (!match) {
+      throw createRouterErrorResponse(null, {
+        status: 404,
+        statusText: "Not Found"
       });
     }
 
-    let result = await queryImpl(request, location, matches, requestContext, match);
+    let result = await queryImpl(request, location, matches, match);
 
-    if (isResponse(result)) {
+    if (result instanceof Response) {
       return result;
     }
 
@@ -2631,17 +2539,17 @@ function unstable_createStaticHandler(routes, opts) {
     return Object.values(routeData || {})[0];
   }
 
-  async function queryImpl(request, location, matches, requestContext, routeMatch) {
+  async function queryImpl(request, location, matches, routeMatch) {
     invariant(request.signal, "query()/queryRoute() requests must contain an AbortController signal");
 
     try {
-      if (isSubmissionMethod(request.method.toLowerCase())) {
-        let result = await submit(request, matches, routeMatch || getTargetMatch(matches, location), requestContext, routeMatch != null);
+      if (validActionMethods.has(request.method)) {
+        let result = await submit(request, matches, routeMatch || getTargetMatch(matches, location), routeMatch != null);
         return result;
       }
 
-      let result = await loadRouteData(request, matches, requestContext, routeMatch);
-      return isResponse(result) ? result : _extends({}, result, {
+      let result = await loadRouteData(request, matches, routeMatch);
+      return result instanceof Response ? result : _extends({}, result, {
         actionData: null,
         actionHeaders: {}
       });
@@ -2667,26 +2575,21 @@ function unstable_createStaticHandler(routes, opts) {
     }
   }
 
-  async function submit(request, matches, actionMatch, requestContext, isRouteRequest) {
+  async function submit(request, matches, actionMatch, isRouteRequest) {
     let result;
 
     if (!actionMatch.route.action) {
-      let error = getInternalRouterError(405, {
-        method: request.method,
-        pathname: new URL(request.url).pathname,
-        routeId: actionMatch.route.id
-      });
-
       if (isRouteRequest) {
-        throw error;
+        throw createRouterErrorResponse(null, {
+          status: 405,
+          statusText: "Method Not Allowed"
+        });
       }
 
-      result = {
-        type: ResultType.error,
-        error
-      };
+      result = getMethodNotAllowedResult(request.url);
     } else {
-      result = await callLoaderOrAction("action", request, actionMatch, matches, basename, true, isRouteRequest, requestContext);
+      result = await callLoaderOrAction("action", request, actionMatch, matches, undefined, // Basename not currently supported in static handlers
+      true, isRouteRequest);
 
       if (request.signal.aborted) {
         let method = isRouteRequest ? "queryRoute" : "query";
@@ -2715,7 +2618,20 @@ function unstable_createStaticHandler(routes, opts) {
       // Note: This should only be non-Response values if we get here, since
       // isRouteRequest should throw any Response received in callLoaderOrAction
       if (isErrorResult(result)) {
-        throw result.error;
+        let boundaryMatch = findNearestBoundary(matches, actionMatch.route.id);
+        return {
+          matches: [actionMatch],
+          loaderData: {},
+          actionData: null,
+          errors: {
+            [boundaryMatch.route.id]: result.error
+          },
+          // Note: statusCode + headers are unused here since queryRoute will
+          // return the raw Response or value
+          statusCode: 500,
+          loaderHeaders: {},
+          actionHeaders: {}
+        };
       }
 
       return {
@@ -2737,7 +2653,7 @@ function unstable_createStaticHandler(routes, opts) {
       // Store off the pending error - we use it to determine which loaders
       // to call and will commit it when we complete the navigation
       let boundaryMatch = findNearestBoundary(matches, actionMatch.route.id);
-      let context = await loadRouteData(request, matches, requestContext, undefined, {
+      let context = await loadRouteData(request, matches, undefined, {
         [boundaryMatch.route.id]: result.error
       }); // action status codes take precedence over loader status codes
 
@@ -2748,13 +2664,9 @@ function unstable_createStaticHandler(routes, opts) {
           [actionMatch.route.id]: result.headers
         } : {})
       });
-    } // Create a GET request for the loaders
+    }
 
-
-    let loaderRequest = new Request(request.url, {
-      signal: request.signal
-    });
-    let context = await loadRouteData(loaderRequest, matches, requestContext);
+    let context = await loadRouteData(request, matches);
     return _extends({}, context, result.statusCode ? {
       statusCode: result.statusCode
     } : {}, {
@@ -2767,19 +2679,10 @@ function unstable_createStaticHandler(routes, opts) {
     });
   }
 
-  async function loadRouteData(request, matches, requestContext, routeMatch, pendingActionError) {
-    let isRouteRequest = routeMatch != null; // Short circuit if we have no loaders to run (queryRoute())
-
-    if (isRouteRequest && !(routeMatch != null && routeMatch.route.loader)) {
-      throw getInternalRouterError(400, {
-        method: request.method,
-        pathname: new URL(request.url).pathname,
-        routeId: routeMatch == null ? void 0 : routeMatch.route.id
-      });
-    }
-
+  async function loadRouteData(request, matches, routeMatch, pendingActionError) {
+    let isRouteRequest = routeMatch != null;
     let requestMatches = routeMatch ? [routeMatch] : getLoaderMatchesUntilBoundary(matches, Object.keys(pendingActionError || {})[0]);
-    let matchesToLoad = requestMatches.filter(m => m.route.loader); // Short circuit if we have no loaders to run (query())
+    let matchesToLoad = requestMatches.filter(m => m.route.loader); // Short circuit if we have no loaders to run
 
     if (matchesToLoad.length === 0) {
       return {
@@ -2791,7 +2694,8 @@ function unstable_createStaticHandler(routes, opts) {
       };
     }
 
-    let results = await Promise.all([...matchesToLoad.map(match => callLoaderOrAction("loader", request, match, matches, basename, true, isRouteRequest, requestContext))]);
+    let results = await Promise.all([...matchesToLoad.map(match => callLoaderOrAction("loader", request, match, matches, undefined, // Basename not currently supported in static handlers
+    true, isRouteRequest))]);
 
     if (request.signal.aborted) {
       let method = isRouteRequest ? "queryRoute" : "query";
@@ -2810,6 +2714,14 @@ function unstable_createStaticHandler(routes, opts) {
     return _extends({}, context, {
       matches
     });
+  }
+
+  function createRouterErrorResponse(body, init) {
+    return new Response(body, _extends({}, init, {
+      headers: _extends({}, init.headers, {
+        "X-Remix-Router-Error": "yes"
+      })
+    }));
   }
 
   return {
@@ -2836,13 +2748,8 @@ function getStaticContextFromError(routes, context, error) {
   });
 
   return newContext;
-}
-
-function isSubmissionNavigation(opts) {
-  return opts != null && "formData" in opts;
 } // Normalize navigation options by converting formMethod=GET formData objects to
 // URLSearchParams so they behave identically to links with query params
-
 
 function normalizeNavigateOptions(to, opts, isFetcher) {
   if (isFetcher === void 0) {
@@ -2851,23 +2758,14 @@ function normalizeNavigateOptions(to, opts, isFetcher) {
 
   let path = typeof to === "string" ? to : createPath(to); // Return location verbatim on non-submission navigations
 
-  if (!opts || !isSubmissionNavigation(opts)) {
+  if (!opts || !("formMethod" in opts) && !("formData" in opts)) {
     return {
       path
-    };
-  }
-
-  if (opts.formMethod && !isValidMethod(opts.formMethod)) {
-    return {
-      path,
-      error: getInternalRouterError(405, {
-        method: opts.formMethod
-      })
     };
   } // Create a Submission on non-GET navigations
 
 
-  if (opts.formMethod && isSubmissionMethod(opts.formMethod)) {
+  if (opts.formMethod != null && opts.formMethod !== "get") {
     return {
       path,
       submission: {
@@ -2876,6 +2774,13 @@ function normalizeNavigateOptions(to, opts, isFetcher) {
         formEncType: opts && opts.formEncType || "application/x-www-form-urlencoded",
         formData: opts.formData
       }
+    };
+  } // No formData to flatten for GET submission
+
+
+  if (!opts.formData) {
+    return {
+      path
     };
   } // Flatten submission onto URLSearchParams for GET submissions
 
@@ -2895,13 +2800,31 @@ function normalizeNavigateOptions(to, opts, isFetcher) {
   } catch (e) {
     return {
       path,
-      error: getInternalRouterError(400)
+      error: new ErrorResponse(400, "Bad Request", "Cannot submit binary form data using GET")
     };
   }
 
   return {
     path: createPath(parsedPath)
   };
+}
+
+function getLoaderRedirect(state, redirect) {
+  let {
+    formMethod,
+    formAction,
+    formEncType,
+    formData
+  } = state.navigation;
+  let navigation = {
+    state: "loading",
+    location: createLocation(state.location, redirect.location),
+    formMethod: formMethod || undefined,
+    formAction: formAction || undefined,
+    formEncType: formEncType || undefined,
+    formData: formData || undefined
+  };
+  return navigation;
 } // Filter out all routes below any caught error as they aren't going to
 // render so we don't need to load them
 
@@ -2967,9 +2890,9 @@ function isNewRouteInstance(currentMatch, match) {
 }
 
 function shouldRevalidateLoader(currentLocation, currentMatch, submission, location, match, isRevalidationRequired, actionResult) {
-  let currentUrl = createClientSideURL(currentLocation);
+  let currentUrl = createURL(currentLocation);
   let currentParams = currentMatch.params;
-  let nextUrl = createClientSideURL(location);
+  let nextUrl = createURL(location);
   let nextParams = match.params; // This is the default implementation as to when we revalidate.  If the route
   // provides it's own implementation, then we give them full control but
   // provide this value so they can leverage it if needed after they check
@@ -3001,11 +2924,7 @@ function shouldRevalidateLoader(currentLocation, currentMatch, submission, locat
   return defaultShouldRevalidate;
 }
 
-async function callLoaderOrAction(type, request, match, matches, basename, isStaticRequest, isRouteRequest, requestContext) {
-  if (basename === void 0) {
-    basename = "/";
-  }
-
+async function callLoaderOrAction(type, request, match, matches, basename, isStaticRequest, isRouteRequest) {
   if (isStaticRequest === void 0) {
     isStaticRequest = false;
   }
@@ -3029,10 +2948,8 @@ async function callLoaderOrAction(type, request, match, matches, basename, isSta
     invariant(handler, "Could not find the " + type + " to run on the \"" + match.route.id + "\" route");
     result = await Promise.race([handler({
       request,
-      params: match.params,
-      context: requestContext
+      params: match.params
     }), abortPromise]);
-    invariant(result !== undefined, "You defined " + (type === "action" ? "an action" : "a loader") + " for route " + ("\"" + match.route.id + "\" but didn't return anything from your `" + type + "` ") + "function. Please return a value or `null`.");
   } catch (e) {
     resultType = ResultType.error;
     result = e;
@@ -3040,31 +2957,28 @@ async function callLoaderOrAction(type, request, match, matches, basename, isSta
     request.signal.removeEventListener("abort", onReject);
   }
 
-  if (isResponse(result)) {
+  if (result instanceof Response) {
     let status = result.status; // Process redirects
 
-    if (redirectStatusCodes.has(status)) {
+    if (status >= 300 && status <= 399) {
       let location = result.headers.get("Location");
-      invariant(location, "Redirects returned/thrown from loaders/actions must have a Location header");
-      let isAbsolute = /^[a-z+]+:\/\//i.test(location) || location.startsWith("//"); // Support relative routing in internal redirects
+      invariant(location, "Redirects returned/thrown from loaders/actions must have a Location header"); // Support relative routing in redirects
 
-      if (!isAbsolute) {
-        let activeMatches = matches.slice(0, matches.indexOf(match) + 1);
-        let routePathnames = getPathContributingMatches(activeMatches).map(match => match.pathnameBase);
-        let resolvedLocation = resolveTo(location, routePathnames, new URL(request.url).pathname);
-        invariant(createPath(resolvedLocation), "Unable to resolve redirect location: " + location); // Prepend the basename to the redirect location if we have one
+      let activeMatches = matches.slice(0, matches.indexOf(match) + 1);
+      let routePathnames = getPathContributingMatches(activeMatches).map(match => match.pathnameBase);
+      let requestPath = createURL(request.url).pathname;
+      let resolvedLocation = resolveTo(location, routePathnames, requestPath);
+      invariant(createPath(resolvedLocation), "Unable to resolve redirect location: " + result.headers.get("Location")); // Prepend the basename to the redirect location if we have one
 
-        if (basename) {
-          let path = resolvedLocation.pathname;
-          resolvedLocation.pathname = path === "/" ? basename : joinPaths([basename, path]);
-        }
+      if (basename) {
+        let path = resolvedLocation.pathname;
+        resolvedLocation.pathname = path === "/" ? basename : joinPaths([basename, path]);
+      }
 
-        location = createPath(resolvedLocation);
-      } // Don't process redirects in the router during static requests requests.
+      location = createPath(resolvedLocation); // Don't process redirects in the router during static requests requests.
       // Instead, throw the Response and let the server handle it with an HTTP
       // redirect.  We also update the Location header in place in this flow so
       // basename and relative routing is taken into account
-
 
       if (isStaticRequest) {
         result.headers.set("Location", location);
@@ -3133,13 +3047,10 @@ async function callLoaderOrAction(type, request, match, matches, basename, isSta
     type: ResultType.data,
     data: result
   };
-} // Utility method for creating the Request instances for loaders/actions during
-// client-side navigations and fetches.  During SSR we will always have a
-// Request instance from the static handler (query/queryRoute)
+}
 
-
-function createClientSideRequest(location, signal, submission) {
-  let url = createClientSideURL(stripHashFromPath(location)).toString();
+function createRequest(location, signal, submission) {
+  let url = createURL(stripHashFromPath(location)).toString();
   let init = {
     signal
   };
@@ -3306,10 +3217,10 @@ function findNearestBoundary(matches, routeId) {
   return eligibleMatches.reverse().find(m => m.route.hasErrorBoundary === true) || matches[0];
 }
 
-function getShortCircuitMatches(routes) {
+function getShortCircuitMatches(routes, status, statusText) {
   // Prefer a root layout route if present, otherwise shim in a route object
   let route = routes.find(r => r.index || !r.path || r.path === "/") || {
-    id: "__shim-error-route__"
+    id: "__shim-" + status + "-route__"
   };
   return {
     matches: [{
@@ -3318,44 +3229,26 @@ function getShortCircuitMatches(routes) {
       pathnameBase: "",
       route
     }],
-    route
+    route,
+    error: new ErrorResponse(status, statusText, null)
   };
 }
 
-function getInternalRouterError(status, _temp3) {
-  let {
-    pathname,
-    routeId,
-    method
-  } = _temp3 === void 0 ? {} : _temp3;
-  let statusText = "Unknown Server Error";
-  let errorMessage = "Unknown @remix-run/router error";
+function getNotFoundMatches(routes) {
+  return getShortCircuitMatches(routes, 404, "Not Found");
+}
 
-  if (status === 400) {
-    statusText = "Bad Request";
+function getMethodNotAllowedMatches(routes) {
+  return getShortCircuitMatches(routes, 405, "Method Not Allowed");
+}
 
-    if (method && pathname && routeId) {
-      errorMessage = "You made a " + method + " request to \"" + pathname + "\" but " + ("did not provide a `loader` for route \"" + routeId + "\", ") + "so there is no way to handle the request.";
-    } else {
-      errorMessage = "Cannot submit binary form data using GET";
-    }
-  } else if (status === 403) {
-    statusText = "Forbidden";
-    errorMessage = "Route \"" + routeId + "\" does not match URL \"" + pathname + "\"";
-  } else if (status === 404) {
-    statusText = "Not Found";
-    errorMessage = "No route matches URL \"" + pathname + "\"";
-  } else if (status === 405) {
-    statusText = "Method Not Allowed";
-
-    if (method && pathname && routeId) {
-      errorMessage = "You made a " + method.toUpperCase() + " request to \"" + pathname + "\" but " + ("did not provide an `action` for route \"" + routeId + "\", ") + "so there is no way to handle the request.";
-    } else if (method) {
-      errorMessage = "Invalid request method \"" + method.toUpperCase() + "\"";
-    }
-  }
-
-  return new ErrorResponse(status || 500, statusText, new Error(errorMessage), true);
+function getMethodNotAllowedResult(path) {
+  let href = typeof path === "string" ? path : createPath(path);
+  console.warn("You're trying to submit to a route that does not have an action.  To " + "fix this, please add an `action` function to the route for " + ("[" + href + "]"));
+  return {
+    type: ResultType.error,
+    error: new ErrorResponse(405, "Method Not Allowed", "")
+  };
 } // Find any returned redirect errors, starting from the lowest match
 
 
@@ -3392,12 +3285,8 @@ function isRedirectResult(result) {
   return (result && result.type) === ResultType.redirect;
 }
 
-function isResponse(value) {
-  return value != null && typeof value.status === "number" && typeof value.statusText === "string" && typeof value.headers === "object" && typeof value.body !== "undefined";
-}
-
 function isRedirectResponse(result) {
-  if (!isResponse(result)) {
+  if (!(result instanceof Response)) {
     return false;
   }
 
@@ -3407,15 +3296,7 @@ function isRedirectResponse(result) {
 }
 
 function isQueryRouteResponse(obj) {
-  return obj && isResponse(obj.response) && (obj.type === ResultType.data || ResultType.error);
-}
-
-function isValidMethod(method) {
-  return validRequestMethods.has(method);
-}
-
-function isSubmissionMethod(method) {
-  return validActionMethods.has(method);
+  return obj && obj.response instanceof Response && (obj.type === ResultType.data || ResultType.error);
 }
 
 async function resolveDeferredResults(currentMatches, matchesToLoad, results, signal, isFetcher, currentLoaderData) {
@@ -3531,7 +3412,7 @@ function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArra
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
-function _iterableToArrayLimit(arr, i) { var _i = null == arr ? null : "undefined" != typeof Symbol && arr[Symbol.iterator] || arr["@@iterator"]; if (null != _i) { var _s, _e, _x, _r, _arr = [], _n = !0, _d = !1; try { if (_x = (_i = _i.call(arr)).next, 0 === i) { if (Object(_i) !== _i) return; _n = !1; } else for (; !(_n = (_s = _x.call(_i)).done) && (_arr.push(_s.value), _arr.length !== i); _n = !0) { ; } } catch (err) { _d = !0, _e = err; } finally { try { if (!_n && null != _i["return"] && (_r = _i["return"](), Object(_r) !== _r)) return; } finally { if (_d) throw _e; } } return _arr; } }
+function _iterableToArrayLimit(arr, i) { var _i = arr == null ? null : typeof Symbol !== "undefined" && arr[Symbol.iterator] || arr["@@iterator"]; if (_i == null) return; var _arr = []; var _n = true; var _d = false; var _s, _e; try { for (_i = _i.call(arr); !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
 
@@ -3904,7 +3785,7 @@ function Home() {
                   className: "text-center py-4",
                   children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("a", {
                     className: "h6 text-decoration-none text-truncate",
-                    href: true,
+                    href: "/product/".concat(fp.slug),
                     children: [fp.name.length < 20 && fp.name, fp.name.length > 20 && fp.name.substring(0, 20) + " ..."]
                   }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("div", {
                     className: "d-flex align-items-center justify-content-center mt-2",
@@ -36798,7 +36679,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_router__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! react-router */ "./node_modules/react-router/dist/index.js");
 /* harmony import */ var react_router__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @remix-run/router */ "./node_modules/@remix-run/router/dist/router.js");
 /**
- * React Router DOM v6.4.5
+ * React Router DOM v6.4.3
  *
  * Copyright (c) Remix Software Inc.
  *
@@ -36991,61 +36872,32 @@ const _excluded = ["onClick", "relative", "reloadDocument", "replace", "state", 
 ////////////////////////////////////////////////////////////////////////////////
 
 function createBrowserRouter(routes, opts) {
+  var _window;
+
   return (0,react_router__WEBPACK_IMPORTED_MODULE_1__.createRouter)({
     basename: opts == null ? void 0 : opts.basename,
     history: (0,react_router__WEBPACK_IMPORTED_MODULE_1__.createBrowserHistory)({
       window: opts == null ? void 0 : opts.window
     }),
-    hydrationData: (opts == null ? void 0 : opts.hydrationData) || parseHydrationData(),
+    hydrationData: (opts == null ? void 0 : opts.hydrationData) || ((_window = window) == null ? void 0 : _window.__staticRouterHydrationData),
     routes: (0,react_router__WEBPACK_IMPORTED_MODULE_2__.UNSAFE_enhanceManualRouteObjects)(routes)
   }).initialize();
 }
 function createHashRouter(routes, opts) {
+  var _window2;
+
   return (0,react_router__WEBPACK_IMPORTED_MODULE_1__.createRouter)({
     basename: opts == null ? void 0 : opts.basename,
     history: (0,react_router__WEBPACK_IMPORTED_MODULE_1__.createHashHistory)({
       window: opts == null ? void 0 : opts.window
     }),
-    hydrationData: (opts == null ? void 0 : opts.hydrationData) || parseHydrationData(),
+    hydrationData: (opts == null ? void 0 : opts.hydrationData) || ((_window2 = window) == null ? void 0 : _window2.__staticRouterHydrationData),
     routes: (0,react_router__WEBPACK_IMPORTED_MODULE_2__.UNSAFE_enhanceManualRouteObjects)(routes)
   }).initialize();
-}
-
-function parseHydrationData() {
-  var _window;
-
-  let state = (_window = window) == null ? void 0 : _window.__staticRouterHydrationData;
-
-  if (state && state.errors) {
-    state = _extends({}, state, {
-      errors: deserializeErrors(state.errors)
-    });
-  }
-
-  return state;
-}
-
-function deserializeErrors(errors) {
-  if (!errors) return null;
-  let entries = Object.entries(errors);
-  let serialized = {};
-
-  for (let [key, val] of entries) {
-    // Hey you!  If you change this, please change the corresponding logic in
-    // serializeErrors in react-router-dom/server.tsx :)
-    if (val && val.__type === "RouteErrorResponse") {
-      serialized[key] = new react_router__WEBPACK_IMPORTED_MODULE_1__.ErrorResponse(val.status, val.statusText, val.data, val.internal === true);
-    } else {
-      serialized[key] = val;
-    }
-  }
-
-  return serialized;
 }
 /**
  * A `<Router>` for use in web browsers. Provides the cleanest URLs.
  */
-
 
 function BrowserRouter(_ref) {
   let {
@@ -37213,10 +37065,7 @@ const NavLink = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.forwardRef(funct
   });
   let location = (0,react_router__WEBPACK_IMPORTED_MODULE_2__.useLocation)();
   let routerState = react__WEBPACK_IMPORTED_MODULE_0__.useContext(react_router__WEBPACK_IMPORTED_MODULE_2__.UNSAFE_DataRouterStateContext);
-  let {
-    navigator
-  } = react__WEBPACK_IMPORTED_MODULE_0__.useContext(react_router__WEBPACK_IMPORTED_MODULE_2__.UNSAFE_NavigationContext);
-  let toPathname = navigator.encodeLocation ? navigator.encodeLocation(path).pathname : path.pathname;
+  let toPathname = path.pathname;
   let locationPathname = location.pathname;
   let nextLocationPathname = routerState && routerState.navigation && routerState.navigation.location ? routerState.navigation.location.pathname : null;
 
@@ -37322,7 +37171,7 @@ const FormImpl = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.forwardRef((_re
 });
 
 if (true) {
-  FormImpl.displayName = "FormImpl";
+  Form.displayName = "Form";
 }
 /**
  * This component will emulate the browser's scroll restoration on location
@@ -37366,7 +37215,7 @@ var DataRouterStateHook;
 })(DataRouterStateHook || (DataRouterStateHook = {}));
 
 function getDataRouterConsoleError(hookName) {
-  return hookName + " must be used within a data router.  See https://reactrouter.com/routers/picking-a-router.";
+  return hookName + " must be used within a data router.  See https://reactrouter.com/en/main/routers/picking-a-router.";
 }
 
 function useDataRouterContext(hookName) {
@@ -37793,7 +37642,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_1__);
 /**
- * React Router v6.4.5
+ * React Router v6.4.3
  *
  * Copyright (c) Remix Software Inc.
  *
@@ -38057,7 +37906,7 @@ if (true) {
  * Returns the full href for the given "to" value. This is useful for building
  * custom links that are also accessible and preserve right-click behavior.
  *
- * @see https://reactrouter.com/hooks/use-href
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-href
  */
 
 function useHref(to, _temp) {
@@ -38096,7 +37945,7 @@ function useHref(to, _temp) {
 /**
  * Returns true if this component is a descendant of a <Router>.
  *
- * @see https://reactrouter.com/hooks/use-in-router-context
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-in-router-context
  */
 
 function useInRouterContext() {
@@ -38110,7 +37959,7 @@ function useInRouterContext() {
  * "routing" in your app, and we'd like to know what your use case is. We may
  * be able to provide something higher-level to better suit your needs.
  *
- * @see https://reactrouter.com/hooks/use-location
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-location
  */
 
 function useLocation() {
@@ -38123,18 +37972,18 @@ function useLocation() {
  * Returns the current navigation action which describes how the router came to
  * the current location, either by a pop, push, or replace on the history stack.
  *
- * @see https://reactrouter.com/hooks/use-navigation-type
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-navigation-type
  */
 
 function useNavigationType() {
   return react__WEBPACK_IMPORTED_MODULE_1__.useContext(LocationContext).navigationType;
 }
 /**
- * Returns a PathMatch object if the given pattern matches the current URL.
+ * Returns true if the URL for the given "to" value matches the current URL.
  * This is useful for components that need to know "active" state, e.g.
  * <NavLink>.
  *
- * @see https://reactrouter.com/hooks/use-match
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-match
  */
 
 function useMatch(pattern) {
@@ -38154,7 +38003,7 @@ function useMatch(pattern) {
  * Returns an imperative method for changing the location. Used by <Link>s, but
  * may also be used by other elements to change the location.
  *
- * @see https://reactrouter.com/hooks/use-navigate
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-navigate
  */
 function useNavigate() {
   !useInRouterContext() ?  true ? (0,_remix_run_router__WEBPACK_IMPORTED_MODULE_0__.invariant)(false, // TODO: This error is probably because they somehow have 2 versions of the
@@ -38205,7 +38054,7 @@ const OutletContext = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1__.createCont
 /**
  * Returns the context (if provided) for the child route at this level of the route
  * hierarchy.
- * @see https://reactrouter.com/hooks/use-outlet-context
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-outlet-context
  */
 
 function useOutletContext() {
@@ -38215,7 +38064,7 @@ function useOutletContext() {
  * Returns the element for the child route at this level of the route
  * hierarchy. Used internally by <Outlet> to render child routes.
  *
- * @see https://reactrouter.com/hooks/use-outlet
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-outlet
  */
 
 function useOutlet(context) {
@@ -38233,7 +38082,7 @@ function useOutlet(context) {
  * Returns an object of key/value pairs of the dynamic params from the current
  * URL that were matched by the route path.
  *
- * @see https://reactrouter.com/hooks/use-params
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-params
  */
 
 function useParams() {
@@ -38246,7 +38095,7 @@ function useParams() {
 /**
  * Resolves the pathname of the given `to` value against the current location.
  *
- * @see https://reactrouter.com/hooks/use-resolved-path
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-resolved-path
  */
 
 function useResolvedPath(to, _temp2) {
@@ -38268,16 +38117,13 @@ function useResolvedPath(to, _temp2) {
  * elements in the tree must render an <Outlet> to render their child route's
  * element.
  *
- * @see https://reactrouter.com/hooks/use-routes
+ * @see https://reactrouter.com/docs/en/v6/hooks/use-routes
  */
 
 function useRoutes(routes, locationArg) {
   !useInRouterContext() ?  true ? (0,_remix_run_router__WEBPACK_IMPORTED_MODULE_0__.invariant)(false, // TODO: This error is probably because they somehow have 2 versions of the
   // router loaded. We can help them understand how to avoid that.
   "useRoutes() may be used only in the context of a <Router> component.") : 0 : void 0;
-  let {
-    navigator
-  } = react__WEBPACK_IMPORTED_MODULE_1__.useContext(NavigationContext);
   let dataRouterStateContext = react__WEBPACK_IMPORTED_MODULE_1__.useContext(DataRouterStateContext);
   let {
     matches: parentMatches
@@ -38339,10 +38185,8 @@ function useRoutes(routes, locationArg) {
 
   let renderedMatches = _renderMatches(matches && matches.map(match => Object.assign({}, match, {
     params: Object.assign({}, parentParams, match.params),
-    pathname: (0,_remix_run_router__WEBPACK_IMPORTED_MODULE_0__.joinPaths)([parentPathnameBase, // Re-encode pathnames that were decoded inside matchRoutes
-    navigator.encodeLocation ? navigator.encodeLocation(match.pathname).pathname : match.pathname]),
-    pathnameBase: match.pathnameBase === "/" ? parentPathnameBase : (0,_remix_run_router__WEBPACK_IMPORTED_MODULE_0__.joinPaths)([parentPathnameBase, // Re-encode pathnames that were decoded inside matchRoutes
-    navigator.encodeLocation ? navigator.encodeLocation(match.pathnameBase).pathname : match.pathnameBase])
+    pathname: (0,_remix_run_router__WEBPACK_IMPORTED_MODULE_0__.joinPaths)([parentPathnameBase, match.pathname]),
+    pathnameBase: match.pathnameBase === "/" ? parentPathnameBase : (0,_remix_run_router__WEBPACK_IMPORTED_MODULE_0__.joinPaths)([parentPathnameBase, match.pathnameBase])
   })), parentMatches, dataRouterStateContext || undefined); // When a user passes in a `locationArg`, the associated routes need to
   // be wrapped in a new `LocationContext.Provider` in order for `useLocation`
   // to use the scoped location instead of the global location.
@@ -38532,7 +38376,7 @@ var DataRouterStateHook;
 })(DataRouterStateHook || (DataRouterStateHook = {}));
 
 function getDataRouterConsoleError(hookName) {
-  return hookName + " must be used within a data router.  See https://reactrouter.com/routers/picking-a-router.";
+  return hookName + " must be used within a data router.  See https://reactrouter.com/en/main/routers/picking-a-router.";
 }
 
 function useDataRouterContext(hookName) {
@@ -38691,7 +38535,6 @@ function RouterProvider(_ref) {
   let navigator = react__WEBPACK_IMPORTED_MODULE_1__.useMemo(() => {
     return {
       createHref: router.createHref,
-      encodeLocation: router.encodeLocation,
       go: n => router.navigate(n),
       push: (to, state, opts) => router.navigate(to, {
         state,
@@ -38726,7 +38569,7 @@ function RouterProvider(_ref) {
 /**
  * A <Router> that stores all entries in memory.
  *
- * @see https://reactrouter.com/router-components/memory-router
+ * @see https://reactrouter.com/docs/en/v6/routers/memory-router
  */
 function MemoryRouter(_ref2) {
   let {
@@ -38767,7 +38610,7 @@ function MemoryRouter(_ref2) {
  * able to use hooks. In functional components, we recommend you use the
  * `useNavigate` hook instead.
  *
- * @see https://reactrouter.com/components/navigate
+ * @see https://reactrouter.com/docs/en/v6/components/navigate
  */
 function Navigate(_ref3) {
   let {
@@ -38802,7 +38645,7 @@ function Navigate(_ref3) {
 /**
  * Renders the child route's element, if there is one.
  *
- * @see https://reactrouter.com/components/outlet
+ * @see https://reactrouter.com/docs/en/v6/components/outlet
  */
 function Outlet(props) {
   return useOutlet(props.context);
@@ -38811,7 +38654,7 @@ function Outlet(props) {
 /**
  * Declares an element that should be rendered at a certain URL path.
  *
- * @see https://reactrouter.com/components/route
+ * @see https://reactrouter.com/docs/en/v6/components/route
  */
 function Route(_props) {
    true ? (0,_remix_run_router__WEBPACK_IMPORTED_MODULE_0__.invariant)(false, "A <Route> is only ever to be used as the child of <Routes> element, " + "never rendered directly. Please wrap your <Route> in a <Routes>.") : 0 ;
@@ -38824,7 +38667,7 @@ function Route(_props) {
  * router that is more specific to your environment such as a <BrowserRouter>
  * in web browsers or a <StaticRouter> for server rendering.
  *
- * @see https://reactrouter.com/router-components/router
+ * @see https://reactrouter.com/docs/en/v6/routers/router
  */
 function Router(_ref4) {
   let {
@@ -38892,7 +38735,7 @@ function Router(_ref4) {
  * A container for a nested tree of <Route> elements that renders the branch
  * that best matches the current location.
  *
- * @see https://reactrouter.com/components/routes
+ * @see https://reactrouter.com/docs/en/v6/components/routes
  */
 function Routes(_ref5) {
   let {
@@ -39055,7 +38898,7 @@ function ResolveAwait(_ref7) {
  * either a `<Route>` element or an array of them. Used internally by
  * `<Routes>` to create a route config from its children.
  *
- * @see https://reactrouter.com/utils/create-routes-from-children
+ * @see https://reactrouter.com/docs/en/v6/utils/create-routes-from-children
  */
 
 

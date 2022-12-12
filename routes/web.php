@@ -6,9 +6,11 @@ use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Frontend\HomePageController;
+use App\Http\Controllers\Frontend\ProductPageController;
 
 
 Route::get('/', [ HomePageController::class, 'home']);
+Route::get('/product/{slug}',[ProductPageController::class, 'detail']);
 Route::get('/authuser', function(){
     $user = User::find(1);
     auth()->login($user);

@@ -171,7 +171,7 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="text-center py-4">
-                      <a className="h6 text-decoration-none text-truncate" href>
+                      <a className="h6 text-decoration-none text-truncate" href={`/product/${fp.slug}`}>
                         {fp.name.length < 20 && fp.name }  
                         {fp.name.length > 20 && fp.name.substring(0, 20)+" ..." }                    
                       </a>
