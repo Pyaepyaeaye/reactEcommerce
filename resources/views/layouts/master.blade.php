@@ -25,6 +25,11 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <!-- Customized Bootstrap Stylesheet -->
     <link href="/web_assets/css/style.css" rel="stylesheet">
+    <style>
+        .toastify {
+            background-image: unset !important;
+        }
+    </style>
     @yield('css')
 </head>
 
@@ -276,7 +281,7 @@
     <script>
         Toastify({
         text: "{{ session('error') }}",
-        className: "info",
+        className: ['bg-danger'],
         position: 'center',
         style: {
             background: "#00b09b",
@@ -288,7 +293,7 @@
      <script>
          Toastify({
          text: "{{ session('success') }}",
-         className: "info",
+         className: ['bg-success'],
          position: 'center',
          style: {
              background: "blue",
@@ -309,7 +314,7 @@
         const showToast = message =>{
             Toastify({
             text: message,
-            className: "info",
+            className: ['bg-danger'],
             position: 'center',
             style: {
                 background: "blue",
