@@ -7,11 +7,43 @@ export default function ProductDetail() {
 
   const [product, setProduct] = useState({});
   const [loader, setLoader] = useState(true);
+  const [reviewList, setReviewList] = useState([]);
+  const [comment, setComment] = useState('');
+  const [rating, setRating] = useState(0);
+  const disabledReview = rating && comment !== ""? false : true;
+  const [reviewLoader, setReviewLoader] = useState(false);
+
+  const makeReview= ()=>{
+    setReviewLoader(true);    
+    const user_id= window.auth.id;
+    const slug  = window.product_slug;
+    const data = { comment, user_id, slug, rating };
+    
+    axios.post('/api/review/'+slug,data).then(({data})=>{
+        console.log(data);
+        if(data.message === false){
+            showToast("Product Not Found");
+        }
+        else{
+            setReviewList([...reviewList, data.data]);
+            setReviewLoader(false);
+            setComment("");
+            setRating(0);
+        }
+       
+    })
+    .catch(function(error) {
+        console.log(error);
+    });
+   
+  }
+
   const product_slug = window.product_slug;
   const fetchData= ()=>{
     axios.get('/api/product/'+ product_slug)
     .then(({data}) =>{        
-        setProduct(data.data);      
+        setProduct(data.data);  
+        setReviewList(data.data.review);    
         setLoader(false);
       })    
       .catch(function(error) {
@@ -92,18 +124,23 @@ export default function ProductDetail() {
                     <div className='d-flex'>
                         <h6 className='text-success font-weight-bold'>InStock: {product.total_qty}</h6>
                     </div>
-                    <div className="d-flex mb-3">
-                    <strong className="text-dark mr-3">Sizes:</strong>               
-                        {
-                            product.size.map((s)=>(
-                                <div className="custom-control custom-radio custom-control-inline" key={s.id}>
-                                <input type="radio" className="custom-control-input" id={`size-${s.id}`} name="size" />
-                                <label className="custom-control-label" htmlFor={`size-${s.id}`}>{s.name}</label>
-                                </div>
-                            ))
-                        }                       
-                   
-                    </div>
+                    {
+                        product.size.length >0 && (
+                        <div className="d-flex mb-3">
+                        <strong className="text-dark mr-3">Sizes:</strong>               
+                            {
+                                product.size.map((s)=>(
+                                    <div className="custom-control custom-radio custom-control-inline" key={s.id}>
+                                    <input type="radio" className="custom-control-input" id={`size-${s.id}`} name="size" />
+                                    <label className="custom-control-label" htmlFor={`size-${s.id}`}>{s.name}</label>
+                                    </div>
+                                ))
+                            }                       
+                    
+                        </div>
+                        )
+                    }
+                    
                     <div className="d-flex mb-4">
                     <strong className="text-dark mr-3">Colors:</strong>
                     {
@@ -160,7 +197,7 @@ export default function ProductDetail() {
                     <div className="nav nav-tabs mb-4">
                     <a className="nav-item nav-link text-dark active" data-toggle="tab" href="#tab-pane-1">Description</a>
                     <a className="nav-item nav-link text-dark" data-toggle="tab" href="#tab-pane-2">Information</a>
-                    <a className="nav-item nav-link text-dark" data-toggle="tab" href="#tab-pane-3">Reviews ({product.review.length})</a>
+                    <a className="nav-item nav-link text-dark" data-toggle="tab" href="#tab-pane-3">Reviews ({reviewList.length})</a>
                     </div>
                     <div className="tab-content">
                     <div className="tab-pane fade show active" id="tab-pane-1">
@@ -208,11 +245,11 @@ export default function ProductDetail() {
                     <div className="tab-pane fade" id="tab-pane-3">
                         <div className="row">
                         <div className="col-md-6">
-                            <h4 className="mb-4">{product.review.length} review for "Product Name"</h4>
+                            <h4 className="mb-4">{reviewList.length} review for "Product Name"</h4>
                             {
-                                product.review.map((r)=>(
+                                reviewList.map((r)=>(
                                     <div className="media mb-4">
-                                    <img src="img/user.jpg" alt="Image" className="img-fluid mr-3 mt-1" style={{width: '45px'}} />
+                                    <img src={r.user.image_url} alt="Image" className="img-fluid mr-3 mt-1" style={{width: '45px'}} />
                                     <div className="media-body">
                                         <h6>{r.user.name}<small> - <i>01 Jan 2045</i></small></h6>
                                         <StarRatings
@@ -236,9 +273,10 @@ export default function ProductDetail() {
                                 <small>Your email address will not be published. Required fields are marked *</small>
                                 <div className="d-flex my-3">
                                 <p className="mb-0 mr-2">Your Rating * :</p>
-                                <StarRatings      
+                                <StarRatings   
+                                    rating={rating}   
                                     starHoverColor ="rgb(255,211,51)"  
-                                    changeRating={(rateCount)=> alert(rateCount)}
+                                    changeRating={(rateCount)=> setRating(rateCount)}
                                     numberOfStars={5}
                                     starDimension='30px'
                                     name='rating'
@@ -247,19 +285,30 @@ export default function ProductDetail() {
                                 <form>
                                 <div className="form-group">
                                     <label htmlFor="message">Your Review *</label>
-                                    <textarea id="message" cols={30} rows={5} className="form-control" defaultValue={""} />
+                                    <textarea id="message" cols={30} rows={5} className="form-control" defaultValue={""} 
+                                    value={comment}
+                                    onChange={(e)=> setComment(e.target.value)} />
                                 </div>
-                                <div className="form-group">
+                                {/* <div className="form-group">
                                     <label htmlFor="name">Your Name *</label>
                                     <input type="text" className="form-control" id="name" />
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="email">Your Email *</label>
                                     <input type="email" className="form-control" id="email" />
-                                </div>
-                                <div className="form-group mb-0">
-                                    <input type="submit" defaultValue="Leave Your Review" className="btn btn-primary px-3" />
-                                </div>
+                                </div> */}
+                                {
+                                    reviewLoader && <Spinner />
+                                }
+                                {
+                                    !reviewLoader && (
+                                    <div className="form-group mb-0">
+                                        <input type="submit" defaultValue="Leave Your Review" className="btn btn-primary px-3" 
+                                        disabled={disabledReview} onClick={()=> makeReview()} />
+                                    </div>
+                                    )
+                                }
+                                
                                 </form>
                             </div>
                             )

@@ -45,8 +45,15 @@
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown">My Account</button>
                         <div class="dropdown-menu dropdown-menu-right">
-                            <button class="dropdown-item" type="button">Sign in</button>
-                            <button class="dropdown-item" type="button">Sign up</button>
+                            @guest
+                            <a class="dropdown-item" href="{{ route('login') }}">Sign in</a> 
+                            <a class="dropdown-item" href="{{ route('register') }}">Sign up</a>                                      
+                            @endguest
+                            @auth
+                            <button class="dropdown-item" type="button">Profile</button>
+                            <a class="dropdown-item" href="{{ route('logout') }}">Logout</a> 
+                            @endauth
+                            
                         </div>
                     </div>
                     <div class="btn-group mx-2">
@@ -276,7 +283,8 @@
         }
         }).showToast();
     </script>
-     @if (session()->has('success'))
+    @endif
+    @if(session()->has('success'))
      <script>
          Toastify({
          text: "{{ session('success') }}",
@@ -286,8 +294,7 @@
              background: "blue",
          }
          }).showToast();
-     </script>
-        
+     </script>        
     @endif
     <!-- Template Javascript -->
     <script src="/web_assets/main.js"></script>
@@ -298,6 +305,17 @@
         }
         window.updateCart(6);
         window.auth = @json(auth()->user());
+        
+        const showToast = message =>{
+            Toastify({
+            text: message,
+            className: "info",
+            position: 'center',
+            style: {
+                background: "blue",
+            }
+            }).showToast();
+        }
     </script>
     @yield('script')
 </body>

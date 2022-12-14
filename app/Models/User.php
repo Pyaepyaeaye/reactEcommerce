@@ -20,10 +20,11 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'image',
         'email',
         'password',
     ];
-
+    protected $appends = ['image_url'];
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -53,5 +54,7 @@ class User extends Authenticatable
     public function review(){
         return $this->hasMany(ProductReview::class);
     }
-    
+    public function getImageUrlAttribute() {
+        return '/images/user/'.$this->image;
+    }
 }

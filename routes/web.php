@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\User\AuthController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
@@ -9,6 +10,14 @@ use App\Http\Controllers\Frontend\HomePageController;
 use App\Http\Controllers\Frontend\ProductPageController;
 
 
+
+//Auth
+Route::get('/register', [ AuthController::class, 'showRegister']);
+Route::post('/register', [ AuthController::class, 'postRegister'])->name('register');
+Route::get('/login', [ AuthController::class, 'showLogin']);
+Route::post('/login', [ AuthController::class, 'postLogin'])->name('login');
+Route::get('/logout', [ AuthController::class, 'logout'])->name('logout');
+//endAuth
 Route::get('/', [ HomePageController::class, 'home']);
 Route::get('/product/{slug}',[ProductPageController::class, 'detail']);
 Route::get('/authuser', function(){

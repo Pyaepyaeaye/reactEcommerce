@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             'name'=> "user",
             'email'=> "user@gmail.com",
             'password'=>Hash::make('123456'),
+            'image' => "",
 
         ]);
         Admin::create([

@@ -3409,6 +3409,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _Spinner__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../Spinner */ "./resources/js/components/Spinner.jsx");
 /* harmony import */ var react_star_ratings__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! react-star-ratings */ "./node_modules/react-star-ratings/build/index.js");
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! react/jsx-runtime */ "./node_modules/react/jsx-runtime.js");
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
 function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
@@ -3430,11 +3434,54 @@ function ProductDetail() {
     _useState4 = _slicedToArray(_useState3, 2),
     loader = _useState4[0],
     setLoader = _useState4[1];
+  var _useState5 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)([]),
+    _useState6 = _slicedToArray(_useState5, 2),
+    reviewList = _useState6[0],
+    setReviewList = _useState6[1];
+  var _useState7 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(''),
+    _useState8 = _slicedToArray(_useState7, 2),
+    comment = _useState8[0],
+    setComment = _useState8[1];
+  var _useState9 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0),
+    _useState10 = _slicedToArray(_useState9, 2),
+    rating = _useState10[0],
+    setRating = _useState10[1];
+  var disabledReview = rating && comment !== "" ? false : true;
+  var _useState11 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false),
+    _useState12 = _slicedToArray(_useState11, 2),
+    reviewLoader = _useState12[0],
+    setReviewLoader = _useState12[1];
+  var makeReview = function makeReview() {
+    setReviewLoader(true);
+    var user_id = window.auth.id;
+    var slug = window.product_slug;
+    var data = {
+      comment: comment,
+      user_id: user_id,
+      slug: slug,
+      rating: rating
+    };
+    axios__WEBPACK_IMPORTED_MODULE_4__["default"].post('/api/review/' + slug, data).then(function (_ref) {
+      var data = _ref.data;
+      console.log(data);
+      if (data.message === false) {
+        showToast("Product Not Found");
+      } else {
+        setReviewList([].concat(_toConsumableArray(reviewList), [data.data]));
+        setReviewLoader(false);
+        setComment("");
+        setRating(0);
+      }
+    })["catch"](function (error) {
+      console.log(error);
+    });
+  };
   var product_slug = window.product_slug;
   var fetchData = function fetchData() {
-    axios__WEBPACK_IMPORTED_MODULE_4__["default"].get('/api/product/' + product_slug).then(function (_ref) {
-      var data = _ref.data;
+    axios__WEBPACK_IMPORTED_MODULE_4__["default"].get('/api/product/' + product_slug).then(function (_ref2) {
+      var data = _ref2.data;
       setProduct(data.data);
+      setReviewList(data.data.review);
       setLoader(false);
     })["catch"](function (error) {
       console.log(error);
@@ -3561,7 +3608,7 @@ function ProductDetail() {
                   className: "text-success font-weight-bold",
                   children: ["InStock: ", product.total_qty]
                 })
-              }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
+              }), product.size.length > 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
                 className: "d-flex mb-3",
                 children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("strong", {
                   className: "text-dark mr-3",
@@ -3698,7 +3745,7 @@ function ProductDetail() {
                   className: "nav-item nav-link text-dark",
                   "data-toggle": "tab",
                   href: "#tab-pane-3",
-                  children: ["Reviews (", product.review.length, ")"]
+                  children: ["Reviews (", reviewList.length, ")"]
                 })]
               }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
                 className: "tab-content",
@@ -3770,12 +3817,12 @@ function ProductDetail() {
                       className: "col-md-6",
                       children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("h4", {
                         className: "mb-4",
-                        children: [product.review.length, " review for \"Product Name\""]
-                      }), product.review.map(function (r) {
+                        children: [reviewList.length, " review for \"Product Name\""]
+                      }), reviewList.map(function (r) {
                         return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
                           className: "media mb-4",
                           children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("img", {
-                            src: "img/user.jpg",
+                            src: r.user.image_url,
                             alt: "Image",
                             className: "img-fluid mr-3 mt-1",
                             style: {
@@ -3814,9 +3861,10 @@ function ProductDetail() {
                           className: "mb-0 mr-2",
                           children: "Your Rating * :"
                         }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)(react_star_ratings__WEBPACK_IMPORTED_MODULE_2__["default"], {
+                          rating: rating,
                           starHoverColor: "rgb(255,211,51)",
                           changeRating: function changeRating(rateCount) {
-                            return alert(rateCount);
+                            return setRating(rateCount);
                           },
                           numberOfStars: 5,
                           starDimension: "30px",
@@ -3833,34 +3881,22 @@ function ProductDetail() {
                             cols: 30,
                             rows: 5,
                             className: "form-control",
-                            defaultValue: ""
+                            defaultValue: "",
+                            value: comment,
+                            onChange: function onChange(e) {
+                              return setComment(e.target.value);
+                            }
                           })]
-                        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
-                          className: "form-group",
-                          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
-                            htmlFor: "name",
-                            children: "Your Name *"
-                          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
-                            type: "text",
-                            className: "form-control",
-                            id: "name"
-                          })]
-                        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)("div", {
-                          className: "form-group",
-                          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("label", {
-                            htmlFor: "email",
-                            children: "Your Email *"
-                          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
-                            type: "email",
-                            className: "form-control",
-                            id: "email"
-                          })]
-                        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("div", {
+                        }), reviewLoader && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)(_Spinner__WEBPACK_IMPORTED_MODULE_1__["default"], {}), !reviewLoader && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("div", {
                           className: "form-group mb-0",
                           children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)("input", {
                             type: "submit",
                             defaultValue: "Leave Your Review",
-                            className: "btn btn-primary px-3"
+                            className: "btn btn-primary px-3",
+                            disabled: disabledReview,
+                            onClick: function onClick() {
+                              return makeReview();
+                            }
                           })
                         })]
                       })]
