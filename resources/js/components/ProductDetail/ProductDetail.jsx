@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React,{ useEffect, useState } from 'react';
 import Spinner from '../Spinner';
+import CartSpinner from '../CartSpinner';
 import StarRatings from 'react-star-ratings';
 
 export default function ProductDetail() {
@@ -12,6 +13,7 @@ export default function ProductDetail() {
   const [rating, setRating] = useState(0);
   const disabledReview = rating && comment !== ""? false : true;
   const [reviewLoader, setReviewLoader] = useState(false);
+  const [cartLoader, setCartLoader] = useState(false);
 
   const makeReview= ()=>{
     setReviewLoader(true);    
@@ -47,13 +49,34 @@ export default function ProductDetail() {
         setLoader(false);
       })    
       .catch(function(error) {
-        console.log(error);
+        //console.log(error);
       });
 
   }
   useEffect(()=>{
     fetchData();
-  },[])
+  },[]);
+
+  //Add to Cart
+  const addToCart= ()=> {   
+    setCartLoader(true);
+    const user_id = window.auth.id;
+    axios.post("/api/add-tocart/" + product_slug, {user_id}).then((d)=>{
+        setCartLoader(false);
+        const { data } = d;        
+        if(data.message == false){
+            showSuccessToast('Product Not Found');
+        }
+        else{
+            window.updateCart(data.data);
+            showSuccessToast('Product Add To Cart');
+            
+            
+        }
+    });
+    
+  }
+
   return (
     <React.Fragment>
      {loader && <Spinner />}
@@ -165,9 +188,17 @@ export default function ProductDetail() {
                             <i className="fa fa-plus" />
                         </button>
                         </div>
-                    </div>                      
-                    <button className="btn btn-primary px-3 mr-3"><i className="fa fa-shopping-cart mr-1" /> Add To
-                        Cart</button>
+                    </div>
+                    { cartLoader && (
+                        <CartSpinner />
+                    )}  
+                    {
+                        !cartLoader && (
+                            <button className="btn btn-primary px-3 mr-3" id="cartCount" onClick={()=> addToCart()} ><i className="fa fa-shopping-cart mr-1" /> Add To
+                            Cart</button>
+                        )
+                    }                    
+                   
                     <button className="btn btn-success px-3"><i className="fa fa-shopping-cart mr-1" /> Buy Now </button>        
                     </div>
                     
@@ -289,14 +320,7 @@ export default function ProductDetail() {
                                     value={comment}
                                     onChange={(e)=> setComment(e.target.value)} />
                                 </div>
-                                {/* <div className="form-group">
-                                    <label htmlFor="name">Your Name *</label>
-                                    <input type="text" className="form-control" id="name" />
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="email">Your Email *</label>
-                                    <input type="email" className="form-control" id="email" />
-                                </div> */}
+                               
                                 {
                                     reviewLoader && <Spinner />
                                 }

@@ -11,4 +11,8 @@ class HomePageController extends Controller
     public function home() {
        return view('home');      
     }
+    public function showProfile(){
+        return view('profile');
+    }
+   
 }

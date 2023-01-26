@@ -19,6 +19,8 @@ class AuthController extends Controller
          'image' => 'required|mimes:png,jpg,jpg',
          'password' => 'required',
          'email' => 'required|email',
+         'phone' => 'required',
+         'address' => 'required'
       ]);
       $find_user= User::where('email', $request->email)->first();
       if($find_user){
@@ -32,6 +34,8 @@ class AuthController extends Controller
          'image' => $img_path,
          'email'=> $request->email,
          'password' => Hash::make($request->password),
+         'phone'=> $request->phone,
+         'address'=> $request->address
       ]);
       auth()->login($user);   
       return redirect('/')->with('success', "Welcome User");

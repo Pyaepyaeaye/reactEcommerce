@@ -55,7 +55,7 @@
                             <a class="dropdown-item" href="{{ route('register') }}">Sign up</a>                                      
                             @endguest
                             @auth
-                            <button class="dropdown-item" type="button">Profile</button>
+                            <a class="dropdown-item" href="{{ route('profile') }}">Profile</a>
                             <a class="dropdown-item" href="{{ route('logout') }}">Logout</a> 
                             @endauth
                             
@@ -177,7 +177,7 @@
                             </a>
                             <a href="" class="btn px-0 ml-3">
                                 <i class="fas fa-shopping-cart text-primary"></i>
-                                <span class="badge text-secondary border border-secondary rounded-circle" id="cartCount" style="padding-bottom: 2px;"></span>
+                                <span class="badge text-secondary border border-secondary rounded-circle" style="padding-bottom: 2px;" id="cartCount">{{ $cart_count }}</span>
                             </a>
                         </div>
                     </div>
@@ -308,13 +308,23 @@
             const cartCount= document.getElementById('cartCount');
             cartCount.innerText= cart;
         }
-        window.updateCart(6);
+        // window.updateCart(6);
         window.auth = @json(auth()->user());
         
-        const showToast = message =>{
+        const showToast = (message,type='success') =>{
             Toastify({
             text: message,
-            className: ['bg-danger'],
+            className: [type == 'success'? 'bg-success': 'bg-danger'],
+            position: 'center',
+            style: {
+                background: "blue",
+            }
+            }).showToast();
+        }
+        const showSuccessToast = message =>{
+            Toastify({
+            text: message,
+            className: ['bg-success'],
             position: 'center',
             style: {
                 background: "blue",

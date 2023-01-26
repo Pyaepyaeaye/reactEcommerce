@@ -28,6 +28,8 @@ class DatabaseSeeder extends Seeder
             'email'=> "user@gmail.com",
             'password'=>Hash::make('123456'),
             'image' => "",
+            'phone'=> "09784193592",
+            'address'=>"Yangon"
 
         ]);
         Admin::create([

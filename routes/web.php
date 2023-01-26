@@ -12,19 +12,18 @@ use App\Http\Controllers\Frontend\ProductPageController;
 
 
 //Auth
-Route::group(['middleware'=> ['RedirectIfAuth']],  function(){
+Route::group(['middleware'=> ['RedirectIfAuth']],  function(){    
     Route::get('/login', [ AuthController::class, 'showLogin']);
     Route::post('/login', [ AuthController::class, 'postLogin'])->name('login');
     Route::get('/register', [ AuthController::class, 'showRegister']);
-    Route::post('/register', [ AuthController::class, 'postRegister'])->name('register');    
-});
-Route::group(['middleware'=> ['RedirectIfNotAuth']],  function(){
+    Route::post('/register', [ AuthController::class, 'postRegister'])->name('register'); 
     Route::get('/logout', [ AuthController::class, 'logout'])->name('logout');
+    Route::get('/profile', [ HomePageController::class, 'showProfile'])->name('profile');   
 });
-
 
 //endAuth
 Route::get('/', [ HomePageController::class, 'home']);
+Route::get('/shop', [ ProductPageController::class, 'product']);
 Route::get('/product/{slug}',[ProductPageController::class, 'detail']);
 
 /*Admin */
